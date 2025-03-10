@@ -218,7 +218,7 @@ func (s *Server) Process(srv extProcPb.ExternalProcessor_ProcessServer) error {
 
 func (s *Server) HandleRequestHeaders(ctx context.Context, requestID string, req *extProcPb.ProcessingRequest) (*extProcPb.ProcessingResponse, utils.User, int64, string) {
 	klog.Info("\n")
-	klog.InfoS("-- In RequestHeaders processing ...", "requestID", requestID)
+	// klog.InfoS("-- In RequestHeaders processing ...", "requestID", requestID)
 	var username string
 	var user utils.User
 	var rpm int64
@@ -283,7 +283,7 @@ func (s *Server) HandleRequestHeaders(ctx context.Context, requestID string, req
 }
 
 func (s *Server) HandleRequestBody(ctx context.Context, requestID string, req *extProcPb.ProcessingRequest, user utils.User, routingStrategy string) (*extProcPb.ProcessingResponse, string, string, bool, int64) {
-	klog.InfoS("-- In RequestBody processing ...", "requestID", requestID)
+	// klog.InfoS("-- In RequestBody processing ...", "requestID", requestID)
 	var model, targetPodIP string
 	var ok, stream bool
 	var term int64 // Identify the trace window
@@ -374,7 +374,7 @@ func (s *Server) HandleRequestBody(ctx context.Context, requestID string, req *e
 		klog.InfoS("request start", "requestID", requestID, "model", model, "routingStrategy", routingStrategy, "targetPodIP", targetPodIP)
 	}
 
-	term = s.cache.AddRequestCount(requestID, model)
+	// term = s.cache.AddRequestCount(requestID, model)
 
 	return &extProcPb.ProcessingResponse{
 		Response: &extProcPb.ProcessingResponse_RequestBody{
@@ -390,7 +390,7 @@ func (s *Server) HandleRequestBody(ctx context.Context, requestID string, req *e
 }
 
 func (s *Server) HandleResponseHeaders(ctx context.Context, requestID string, req *extProcPb.ProcessingRequest, targetPodIP string) *extProcPb.ProcessingResponse {
-	klog.InfoS("-- In ResponseHeaders processing ...", "requestID", requestID)
+	// klog.InfoS("-- In ResponseHeaders processing ...", "requestID", requestID)
 
 	headers := []*configPb.HeaderValueOption{{
 		Header: &configPb.HeaderValue{
@@ -423,20 +423,20 @@ func (s *Server) HandleResponseHeaders(ctx context.Context, requestID string, re
 
 func (s *Server) HandleResponseBody(ctx context.Context, requestID string, req *extProcPb.ProcessingRequest, user utils.User, rpm int64, model string, targetPodIP string, stream bool, traceTerm int64, hasCompleted bool) (*extProcPb.ProcessingResponse, bool) {
 	b := req.Request.(*extProcPb.ProcessingRequest_ResponseBody)
-	klog.InfoS("-- In ResponseBody processing ...", "requestID", requestID, "endOfStream", b.ResponseBody.EndOfStream)
+	// klog.InfoS("-- In ResponseBody processing ...", "requestID", requestID, "endOfStream", b.ResponseBody.EndOfStream)
 
 	var res openai.ChatCompletion
 	var usage openai.CompletionUsage
-	var promptTokens, completionTokens int64
+	// var promptTokens, completionTokens int64
 	var headers []*configPb.HeaderValueOption
 	complete := hasCompleted
 
-	defer func() {
-		// Wrapped in a function to delay the evaluation of parameters. Using complete to make sure DoneRequestTrace only call once for a request.
-		if !hasCompleted && complete && b.ResponseBody.EndOfStream {
-			s.cache.DoneRequestTrace(requestID, model, promptTokens, completionTokens, traceTerm)
-		}
-	}()
+	// defer func() {
+	// 	// Wrapped in a function to delay the evaluation of parameters. Using complete to make sure DoneRequestTrace only call once for a request.
+	// 	if !hasCompleted && complete && b.ResponseBody.EndOfStream {
+	// 		s.cache.DoneRequestTrace(requestID, model, promptTokens, completionTokens, traceTerm)
+	// 	}
+	// }()
 
 	if stream {
 		t := &http.Response{
@@ -516,8 +516,8 @@ func (s *Server) HandleResponseBody(ctx context.Context, requestID string, req *
 	if usage.TotalTokens != 0 {
 		complete = true
 		// Update promptTokens and completeTokens
-		promptTokens = usage.PromptTokens
-		completionTokens = usage.CompletionTokens
+		// promptTokens = usage.PromptTokens
+		// completionTokens = usage.CompletionTokens
 		// Count token per user.
 		if user.Name != "" {
 			tpm, err := s.ratelimiter.Incr(ctx, fmt.Sprintf("%v_TPM_CURRENT", user), res.Usage.TotalTokens)
