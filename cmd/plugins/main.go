@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -91,6 +92,10 @@ func main() {
 	healthPb.RegisterHealthServer(s, &gateway.HealthServer{})
 
 	klog.Info("starting gRPC server on port :50052")
+
+	go func() {
+		klog.Info(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	// shutdown
 	var gracefulStop = make(chan os.Signal, 1)

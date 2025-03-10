@@ -21,9 +21,11 @@ import (
 	// "encoding/json"
 	"errors"
 	"fmt"
+
 	// "math"
 	"strconv"
 	"sync"
+
 	// "sync/atomic"
 	"time"
 
@@ -227,21 +229,20 @@ func NewCache(config *rest.Config, stopCh <-chan struct{}, redisClient *redis.Cl
 			panic(err)
 		}
 
-		ticker := time.NewTicker(podMetricRefreshInterval)
-		go func() {
-			for {
-				select {
-				case <-ticker.C:
-					instance.updatePodMetrics()
-					instance.updateModelMetrics()
-					instance.debugInfo()
-				case <-stopCh:
-					ticker.Stop()
-					return
-				}
-			}
-		}()
-
+		// ticker := time.NewTicker(podMetricRefreshInterval)
+		// go func() {
+		// 	for {
+		// 		select {
+		// 		case <-ticker.C:
+		// 			instance.updatePodMetrics()
+		// 			instance.updateModelMetrics()
+		// 			instance.debugInfo()
+		// 		case <-stopCh:
+		// 			ticker.Stop()
+		// 			return
+		// 		}
+		// 	}
+		// }()
 		// tickerOffset := time.Duration(time.Now().UnixNano()) % RequestTraceWriteInterval
 		// var traceAlignmentTimer *time.Timer
 		// // TODO: Using ticker may be a problem if writeRequestTraceToStorage takes too long.
@@ -261,9 +262,7 @@ func NewCache(config *rest.Config, stopCh <-chan struct{}, redisClient *redis.Cl
 		// 		// Wait for alignment
 		// 		<-traceAlignmentTimer.C
 		// 		traceAlignmentTimer = nil
-
 		// 		// TODO: Clean up data if necessary.
-
 		// 		// Start ticker
 		// 		traceTicker = time.NewTicker(RequestTraceWriteInterval)
 		// 	}
