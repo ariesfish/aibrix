@@ -98,8 +98,9 @@ func (p prefixCacheRouter) Route(ctx context.Context, pods map[string]*v1.Pod, m
 		readyPodNames = append(readyPodNames, p.Status.PodIP)
 	}
 	klog.InfoS("prefix cache route",
-		"matched_tokens", matchedTokens,
-		"unmatched_tokens", unMatchedTokens,
+		"token_lenght", len(tokens),
+		"matched_tokens_length", len(matchedTokens),
+		"unmatched_tokens_length", len(unMatchedTokens),
 		"matched_pods", matchedPodNames,
 		"ready_pods", readyPodNames,
 		"target_pod", targetPod.Status.PodIP)

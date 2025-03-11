@@ -115,8 +115,8 @@ func NewPrefixHashTable() PrefixCacheIndexer {
 // returns matchedTokens, unMatchedTokens, matchedPods
 // TODO: add an interface with multiple implementations such as hash or radix tree
 func (c *PrefixHashTable) MatchPrefix(tokens []string, model string, pods []*v1.Pod) ([]string, []string, []*v1.Pod) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	var block, lastMatchedBlock Block
 	var ok bool
 	var lastTokenMatchIndex int
