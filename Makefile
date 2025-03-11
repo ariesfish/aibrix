@@ -127,7 +127,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 IS_MAIN_BRANCH ?= true
 
 define build_and_tag
-	$(CONTAINER_TOOL) build -t ${AIBRIX_CONTAINER_REGISTRY_NAMESPACE}/$(1):${GIT_COMMIT_HASH} -f ${DOCKERFILE_PATH}/$(2) .
+	$(CONTAINER_TOOL) buildx build --platform linux/amd64 -t ${AIBRIX_CONTAINER_REGISTRY_NAMESPACE}/$(1):${GIT_COMMIT_HASH} -f ${DOCKERFILE_PATH}/$(2) .
 	if [ "${IS_MAIN_BRANCH}" = "true" ]; then $(CONTAINER_TOOL) tag ${AIBRIX_CONTAINER_REGISTRY_NAMESPACE}/$(1):${GIT_COMMIT_HASH} ${AIBRIX_CONTAINER_REGISTRY_NAMESPACE}/$(1):nightly; fi
 endef
 
@@ -240,7 +240,7 @@ uninstall-vke: manifests kustomize ## Uninstall CRDs from the K8s cluster specif
 
 .PHONY: deploy-vke
 deploy-vke: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/overlays/vke/default | $(KUBECTL) create -f -
+	$(KUSTOMIZE) build config/overlays/vke/default | $(KUBECTL) apply -f -
 
 .PHONY: undeploy-vke
 undeploy-vke: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -248,7 +248,7 @@ undeploy-vke: kustomize ## Undeploy controller from the K8s cluster specified in
 
 .PHONY: deploy-vke-ipv4
 deploy-vke-ipv4: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/overlays/vke-ipv4/default | $(KUBECTL) create -f -
+	$(KUSTOMIZE) build config/overlays/vke-ipv4/default | $(KUBECTL) apply -f -
 
 .PHONY: undeploy-vke-ipv4
 undeploy-vke-ipv4: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
