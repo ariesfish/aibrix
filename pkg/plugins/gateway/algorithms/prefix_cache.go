@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 
 	"github.com/aibrix/aibrix/pkg/plugins/gateway/prefixcacheindexer"
 	"github.com/aibrix/aibrix/pkg/utils"
@@ -29,7 +30,7 @@ import (
 )
 
 const (
-	defaultPrefixCacheMatchThresholdPercent = 50
+	defaultPrefixCacheMatchThresholdPercent = 10
 )
 
 var (
@@ -72,10 +73,10 @@ func (p prefixCacheRouter) Route(ctx context.Context, pods map[string]*v1.Pod, m
 		}
 	}
 
-	tokens, err := utils.TokenizeInputText(message)
-	if err != nil {
-		return "", err
-	}
+	tokens := strings.Split(message, " ")
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	var targetPod *v1.Pod
 	matchedTokens, unMatchedTokens, matchedPods := p.prefixCacheIndexer.MatchPrefix(tokens, model, readyPods)
@@ -97,8 +98,6 @@ func (p prefixCacheRouter) Route(ctx context.Context, pods map[string]*v1.Pod, m
 		readyPodNames = append(readyPodNames, p.Status.PodIP)
 	}
 	klog.InfoS("prefix cache route",
-		"message", message,
-		"tokens", tokens,
 		"matched_tokens", matchedTokens,
 		"unmatched_tokens", unMatchedTokens,
 		"matched_pods", matchedPodNames,

@@ -114,7 +114,7 @@ func NewPrefixHashTable() PrefixCacheIndexer {
 
 // returns matchedTokens, unMatchedTokens, matchedPods
 // TODO: add an interface with multiple implementations such as hash or radix tree
-func (c *PrefixHashTable) MatchPrefix(tokens []int, model string, pods []*v1.Pod) ([]int, []int, []*v1.Pod) {
+func (c *PrefixHashTable) MatchPrefix(tokens []string, model string, pods []*v1.Pod) ([]string, []string, []*v1.Pod) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	var block, lastMatchedBlock Block
@@ -128,9 +128,9 @@ func (c *PrefixHashTable) MatchPrefix(tokens []int, model string, pods []*v1.Pod
 		}
 
 		chunk := tokens[i:end]
-		prefixHash := xxhash.Sum64(IntArrayToByteArray(chunk))
+		prefixHash := xxhash.Sum64(stringArrayToByteArray(chunk))
 		block, ok = c.blocks[prefixHash]
-		if !ok || len(block.modelToPods[model]) == 0 {
+		if !ok || len(block.modelToPods[model]) == 0 || len(matchPods(block.modelToPods[model], pods)) == 0 {
 			lastTokenMatchIndex = i
 			break
 		}
@@ -145,17 +145,14 @@ func (c *PrefixHashTable) MatchPrefix(tokens []int, model string, pods []*v1.Pod
 	unMatchedTokens := tokens[lastTokenMatchIndex:]
 
 	var matchedPods []*v1.Pod
-	blockPods := lastMatchedBlock.modelToPods[model]
-	for _, pod := range pods {
-		if _, ok := blockPods[pod.Name]; ok {
-			matchedPods = append(matchedPods, pod)
-		}
+	if len(matchedTokens) > 0 {
+		matchedPods = matchPods(lastMatchedBlock.modelToPods[model], pods)
 	}
 
 	return matchedTokens, unMatchedTokens, matchedPods
 }
 
-func (c *PrefixHashTable) AddPrefix(unMatchedTokens []int, model, pod string) {
+func (c *PrefixHashTable) AddPrefix(unMatchedTokens []string, model, pod string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -166,23 +163,27 @@ func (c *PrefixHashTable) AddPrefix(unMatchedTokens []int, model, pod string) {
 		}
 
 		chunk := unMatchedTokens[i:end]
-		prefixHash := xxhash.Sum64(IntArrayToByteArray(chunk))
+		prefixHash := xxhash.Sum64(stringArrayToByteArray(chunk))
 		block, ok := c.blocks[prefixHash]
 		if !ok {
 			block = Block{
-				modelToPods:    map[string]map[string]time.Time{},
-				lastAccessTime: time.Now(),
+				modelToPods: map[string]map[string]time.Time{
+					model: {
+						pod: time.Now(),
+					},
+				},
 			}
-			c.blocks[prefixHash] = block
-		}
-
-		blockPods, ok := block.modelToPods[model]
-		if !ok {
-			blockPods = map[string]time.Time{}
+		} else {
+			blockPods, ok := block.modelToPods[model]
+			if !ok {
+				blockPods = map[string]time.Time{}
+			}
+			blockPods[pod] = time.Now()
 			block.modelToPods[model] = blockPods
 		}
 
-		blockPods[pod] = time.Now()
+		block.lastAccessTime = time.Now()
+		c.blocks[prefixHash] = block
 	}
 }
 
@@ -207,4 +208,23 @@ func IntArrayToByteArray(intArray []int) []byte {
 		}
 	}
 	return buf.Bytes()
+}
+
+func stringArrayToByteArray(strArr []string) []byte {
+	var result []byte
+	for _, str := range strArr {
+		result = append(result, []byte(str)...)
+	}
+	return result
+}
+
+// matchPods returns ready pods that intersect with pods on which prefix tokens are catched.
+func matchPods(blockPods map[string]time.Time, readyPods []*v1.Pod) []*v1.Pod {
+	var matchedPods []*v1.Pod
+	for _, pod := range readyPods {
+		if _, ok := blockPods[pod.Name]; ok {
+			matchedPods = append(matchedPods, pod)
+		}
+	}
+	return matchedPods
 }
