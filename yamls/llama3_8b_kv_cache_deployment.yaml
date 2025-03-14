@@ -6,11 +6,11 @@ metadata:
     model.aibrix.ai/name: llama-3-8b-instruct
     model.aibrix.ai/port: "8000"
 spec:
-  replicas: 1
+  replicas: 4
   strategy:
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
+      maxSurge: 100%
+      maxUnavailable: 100%
     type: RollingUpdate
   selector:
     matchLabels:
@@ -37,6 +37,8 @@ spec:
             - vllm.entrypoints.openai.api_server
             - --port
             - "8000"
+            - --uvicorn-log-level
+            - warning
             - --model
             - /models/llama-3.1-8b-instruct/
             - --served-model-name
@@ -56,11 +58,11 @@ spec:
             - --enable-prefix-caching
           env:
             - name: VLLM_USE_VINEYARD_CACHE
-              value: "1"
+              value: "0"
             - name: VINEYARD_CACHE_CPU_MEM_LIMIT_GB
-              value: "24"
+              value: "72"
             - name: AIBRIX_LLM_KV_CACHE
-              value: "1"
+              value: "0"
             - name: AIBRIX_LLM_KV_CACHE_KV_CACHE_NS
               value: "aibrix"
             - name: AIBRIX_LLM_KV_CACHE_CHUNK_SIZE
@@ -93,34 +95,36 @@ spec:
                       sleep 5
                     fi
                   done
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 8000
-              scheme: HTTP
-            initialDelaySeconds: 90
-            periodSeconds: 5
-            successThreshold: 1
-            timeoutSeconds: 1
+          # livenessProbe:
+          #   failureThreshold: 3
+          #   httpGet:
+          #     path: /health
+          #     port: 8000
+          #     scheme: HTTP
+          #   initialDelaySeconds: 90
+          #   periodSeconds: 5
+          #   successThreshold: 1
+          #   timeoutSeconds: 1
           name: vllm-openai
           ports:
           - containerPort: 8000
             protocol: TCP
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 8000
-              scheme: HTTP
-            initialDelaySeconds: 90
-            periodSeconds: 5
-            successThreshold: 1
-            timeoutSeconds: 1
+          # readinessProbe:
+          #   failureThreshold: 3
+          #   httpGet:
+          #     path: /health
+          #     port: 8000
+          #     scheme: HTTP
+          #   initialDelaySeconds: 90
+          #   periodSeconds: 5
+          #   successThreshold: 1
+          #   timeoutSeconds: 1
           resources:
             limits:
+              cpu: 10
               nvidia.com/gpu: "1"
             requests:
+              cpu: 10
               nvidia.com/gpu: "1"
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
@@ -203,8 +207,8 @@ spec:
         name: init-model
         resources: {}
         volumeMounts:
-            - mountPath: /models
-              name: model-hostpath
+        - mountPath: /models
+          name: model-hostpath
       terminationGracePeriodSeconds: 60
       volumes:
         - name: model-hostpath
@@ -259,5 +263,5 @@ spec:
   cacheSpec:
     image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/vineyardd:20241120
     imagePullPolicy: IfNotPresent
-    cpu: 2000m
-    memory: 24Gi
+    cpu: 4001m
+    memory: 72Gi
