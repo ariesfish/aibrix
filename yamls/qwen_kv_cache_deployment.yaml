@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: llama-3-8b-instruct
+  name: qwen2-5-7b-instruct
   labels:
-    model.aibrix.ai/name: llama-3-8b-instruct
+    model.aibrix.ai/name: qwen2-5-7b-instruct
     model.aibrix.ai/port: "8000"
 spec:
-  replicas: 1
+  replicas: 8
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -14,11 +14,11 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      model.aibrix.ai/name: llama-3-8b-instruct
+      model.aibrix.ai/name: qwen2-5-7b-instruct
   template:
     metadata:
       labels:
-        model.aibrix.ai/name: llama-3-8b-instruct
+        model.aibrix.ai/name: qwen2-5-7b-instruct
     spec:
       spec:
       affinity:
@@ -38,16 +38,16 @@ spec:
             - --port
             - "8000"
             - --model
-            - /models/llama-3.1-8b-instruct/
+            - /models/Qwen2.5-7B-Instruct/
             - --served-model-name
-            - llama-3-8b-instruct
+            - qwen2-5-7b-instruct
             - --trust-remote-code
             # - --api-key
             # - sk-kFJ12nKsFVfVmGpj3QzX65s4RbN2xJqWzPYCjYu7wT3BlbLi
             - --enable-chunked-prefill
             - "false"
             - --max-model-len
-            - "15000"
+            - "32000"
             - --dtype
             - bfloat16
             - --disable-log-requests
@@ -68,12 +68,12 @@ spec:
             - name: AIBRIX_LLM_KV_CACHE_SOCKET
               value: /var/run/vineyard.sock
             - name: AIBRIX_LLM_KV_CACHE_RPC_ENDPOINT
-              value: "aibrix-kvcache-llama-3-8b-instruct-rpc:9600"
+              value: "aibrix-kvcache-rpc:9600"
             - name: VINEYARD_CACHE_ENABLE_ASYNC_UPDATE
               value: "1"
             - name: "VINEYARD_CACHE_METRICS_ENABLED"
               value: "1"
-          image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/vllm-openai:v0.6.1-edb07092-20250118
+          image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/vllm-openai:v0.6.5
           imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
@@ -129,8 +129,6 @@ spec:
             name: model-hostpath
           - mountPath: /dev/shm
             name: dshm
-          - mountPath: /var/run
-            name: kvcache-socket            
         - command:
           - aibrix_runtime
           - --port
@@ -142,44 +140,47 @@ spec:
             value: http://localhost:8000
           image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/runtime:v0.2.0
           imagePullPolicy: IfNotPresent
-          # livenessProbe:
-          #   failureThreshold: 3
-          #   httpGet:
-          #     path: /healthz
-          #     port: 8080
-          #     scheme: HTTP
-          #   initialDelaySeconds: 3
-          #   periodSeconds: 2
-          #   successThreshold: 1
-          #   timeoutSeconds: 1
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 3
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 1
           name: aibrix-runtime
           ports:
           - containerPort: 8080
             protocol: TCP
-          # readinessProbe:
-          #   failureThreshold: 3
-          #   httpGet:
-          #     path: /ready
-          #     port: 8080
-          #     scheme: HTTP
-          #   initialDelaySeconds: 5
-          #   periodSeconds: 10
-          #   successThreshold: 1
-          #   timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /models
+            name: model-hostpath
       dnsPolicy: ClusterFirst
       initContainers:
       - command:
         - aibrix_download
         - --model-uri
-        - tos://aibrix-artifact-testing/models/llama-3.1-8b-instruct/
+        - tos://aibrix-artifact-testing/models/Qwen2.5-7B-Instruct/
         - --local-dir
         - /models/
         env:
         - name: DOWNLOADER_MODEL_NAME
-          value: llama-3.1-8b-instruct
+          value: Qwen2.5-7B-Instruct
         - name: DOWNLOADER_NUM_THREADS
           value: "16"
         - name: DOWNLOADER_ALLOW_FILE_SUFFIX
@@ -198,11 +199,11 @@ spec:
           value: tos-cn-beijing.ivolces.com
         - name: TOS_REGION
           value: cn-beijing
-        image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/runtime:v0.1.0
+        image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/runtime:v0.1.1
         imagePullPolicy: IfNotPresent
         name: init-model
         resources: {}
-        volumeMounts:
+      volumeMounts:
             - mountPath: /models
               name: model-hostpath
       terminationGracePeriodSeconds: 60
@@ -215,20 +216,17 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: "4Gi"
-        - name: kvcache-socket
-          hostPath:
-            path: /var/run/vineyard-kubernetes/default/aibrix-kvcache-llama-3-8b-instruct            
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    model.aibrix.ai/name: llama-3-8b-instruct
+    model.aibrix.ai/name: qwen2-5-7b-instruct
     prometheus-discovery: "true"
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
-  name: llama-3-8b-instruct # Note: The Service name must match the label value `model.aibrix.ai/name` in the Deployment
+  name: qwen2-5-7b-instruct # Note: The Service name must match the label value `model.aibrix.ai/name` in the Deployment
   namespace: default
 spec:
   ports:
@@ -241,16 +239,16 @@ spec:
       protocol: TCP
       targetPort: 8080
   selector:
-    model.aibrix.ai/name: llama-3-8b-instruct
+    model.aibrix.ai/name: qwen2-5-7b-instruct
   type: ClusterIP
 ---
 apiVersion: orchestration.aibrix.ai/v1alpha1
 kind: KVCache
 metadata:
-  name: aibrix-kvcache-llama-3-8b-instruct
+  name: aibrix-kvcache
   namespace: default
   annotations:
-    kvcache.orchestration.aibrix.ai/pod-affinity-workload: llama-3-8b-instruct
+    kvcache.orchestration.aibrix.ai/pod-affinity-workload: qwen2-5-7b-instruct
 spec:
   replicas: 1
   service:
