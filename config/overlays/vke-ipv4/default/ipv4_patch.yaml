@@ -10,6 +10,17 @@ spec:
         patch:
           value:
             spec:
+              type: ClusterIP
               ipFamilies:
               - IPv4    # Only IPv4
               ipFamilyPolicy: SingleStack  # Changed from PreferDualStack to SingleStack
+      envoyDeployment:
+        container:
+          resources:
+            requests:
+              cpu: 2
+              memory: 8Gi
+            limits:
+              cpu: 2
+              memory: 8Gi
+          image: aibrix-container-registry-cn-beijing.cr.volces.com/envoyproxy/envoy:distroless-v1.31.0

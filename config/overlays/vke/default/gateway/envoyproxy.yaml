@@ -7,18 +7,18 @@ spec:
   provider:
     type: Kubernetes
     kubernetes:
-      envoyService:
-        patch:
-          type: StrategicMerge
-          value:
-            metadata:
-              annotations:
-                service.beta.kubernetes.io/volcengine-loadbalancer-address-type: "PRIVATE"
-            spec:
-              ipFamilies:
-                - IPv4
-                - IPv6
-              ipFamilyPolicy: PreferDualStack
+      # envoyService:
+      #   patch:
+      #     type: StrategicMerge
+      #     value:
+      #       metadata:
+      #         annotations:
+      #           service.beta.kubernetes.io/volcengine-loadbalancer-address-type: "PRIVATE"
+      #       spec:
+      #         ipFamilies:
+      #           - IPv4
+      #           - IPv6
+      #         ipFamilyPolicy: PreferDualStack
       envoyDeployment:
         pod:
           annotations:

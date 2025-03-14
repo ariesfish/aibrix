@@ -1,0 +1,189 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "8"
+    meta.helm.sh/release-name: vllm
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: "2025-03-12T21:18:33Z"
+  generation: 12
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    environment: test
+    release: test
+  name: vllm-llama3-deployment-vllm
+  namespace: default
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      environment: test
+      release: test
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 100%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        environment: test
+        release: test
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: machine.cluster.vke.volcengine.com/gpu-name
+                operator: In
+                values:
+                - NVIDIA-A10
+      containers:
+      - command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+        - --port
+        - "8000"
+        - --uvicorn-log-level
+        - warning
+        - --model
+        - /models/llama-3.1-8b-instruct/
+        - --served-model-name
+        - llama-3-8b-instruct
+        - --trust-remote-code
+        - --enable-chunked-prefill
+        - "false"
+        - --max-model-len
+        - "15000"
+        - --dtype
+        - bfloat16
+        - --disable-log-requests
+        - --swap-space
+        - "0"
+        - --kv-transfer-config
+        - '{"kv_connector":"LMCacheConnector","kv_role":"kv_both"}'
+        env:
+        - name: LMCACHE_USE_EXPERIMENTAL
+          value: "True"
+        - name: VLLM_RPC_TIMEOUT
+          value: "1000000"
+        - name: LMCACHE_LOCAL_CPU
+          value: "True"
+        - name: LMCACHE_MAX_LOCAL_CPU_SIZE
+          value: "64"
+        image: aibrix-container-registry-cn-beijing.cr.volces.com/lmcache/vllm-openai:latest
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                while true; do
+                  RUNNING=$(curl -s http://localhost:8000/metrics | grep 'vllm:num_requests_running' | grep -v '#' | awk '{print $2}')
+                  WAITING=$(curl -s http://localhost:8000/metrics | grep 'vllm:num_requests_waiting' | grep -v '#' | awk '{print $2}')
+                  if [ "$RUNNING" = "0.0" ] && [ "$WAITING" = "0.0" ]; then
+                    echo "Terminating: No active or waiting requests, safe to terminate" >> /proc/1/fd/1
+                    exit 0
+                  else
+                    echo "Terminating: Running: $RUNNING, Waiting: $WAITING" >> /proc/1/fd/1
+                    sleep 5
+                  fi
+                done
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 90
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: vllm
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 90
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 10000m
+            memory: 88Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: 10000m
+            memory: 88Gi
+            nvidia.com/gpu: "1"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /models
+          name: model-hostpath
+        - mountPath: /dev/shm
+          name: dshm
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - aibrix_download
+        - --model-uri
+        - tos://aibrix-artifact-testing/models/llama-3.1-8b-instruct/
+        - --local-dir
+        - /models/
+        env:
+        - name: DOWNLOADER_MODEL_NAME
+          value: llama-3.1-8b-instruct
+        - name: DOWNLOADER_NUM_THREADS
+          value: "16"
+        - name: DOWNLOADER_ALLOW_FILE_SUFFIX
+          value: json, safetensors
+        - name: TOS_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: TOS_ACCESS_KEY
+              name: tos-credential
+        - name: TOS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: TOS_SECRET_KEY
+              name: tos-credential
+        - name: TOS_ENDPOINT
+          value: tos-cn-beijing.ivolces.com
+        - name: TOS_REGION
+          value: cn-beijing
+        image: aibrix-container-registry-cn-beijing.cr.volces.com/aibrix/runtime:v0.1.1
+        imagePullPolicy: IfNotPresent
+        name: init-model
+        resources: {}
+        volumeMounts:
+        - mountPath: /models
+          name: model-hostpath
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /root/models
+          type: DirectoryOrCreate
+        name: model-hostpath
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 4Gi
+        name: dshm

@@ -88,3 +88,5 @@ spec:
       backendRefs:
         - name: aibrix-gateway-plugins
           port: 50052
+      timeouts:
+        request: "120s"
