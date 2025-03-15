@@ -24,8 +24,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vllm-project/aibrix/pkg/plugins/gateway/prefixcacheindexer"
-	"github.com/vllm-project/aibrix/pkg/utils"
+	// "github.com/vllm-project/aibrix/pkg/plugins/gateway/prefixcacheindexer"
+	// "github.com/vllm-project/aibrix/pkg/utils"
+	"github.com/aibrix/aibrix/pkg/plugins/gateway/prefixcacheindexer"
+	"github.com/aibrix/aibrix/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
@@ -542,18 +544,19 @@ func (p *prefixCacheAndLoadRouter) Route(ctx context.Context, pods map[string]*v
 			}
 			klog.Infof("Selected pod %s from longest matching node with match length %d", targetPod.Name, longestMatch.matchLength)
 			klog.Infof("prefixawarerouting latency %.4f", time.Since(ts_prefixawarerouting).Seconds())
-		} else {
-			ts_DetokenizeText := time.Now()
-			token_in_string, err := utils.DetokenizeText(tokens)
-			matched_tokens_in_string, _ := utils.DetokenizeText(matchedTokens)
-			klog.Infof("Detokenizer latency %.4f", time.Since(ts_DetokenizeText).Seconds())
-			if err != nil {
-				klog.Errorf("DetokenizeTexts failed: %s, tokens: '%v', matchedTokens: '%v', model: %s", err, token_in_string, matched_tokens_in_string, model)
-			} else {
-				klog.Infof("No matched pods found for tokens: '%v', matchedTokens: '%v', model: %s", token_in_string, matched_tokens_in_string, model)
-				klog.Infof("Go to cost model based routing!")
-			}
-		}
+		} 
+		// else {
+		// 	ts_DetokenizeText := time.Now()
+		// 	token_in_string, err := utils.DetokenizeText(tokens)
+		// 	matched_tokens_in_string, _ := utils.DetokenizeText(matchedTokens)
+		// 	klog.Infof("Detokenizer latency %.4f", time.Since(ts_DetokenizeText).Seconds())
+		// 	if err != nil {
+		// 		klog.Errorf("DetokenizeTexts failed: %s, tokens: '%v', matchedTokens: '%v', model: %s", err, token_in_string, matched_tokens_in_string, model)
+		// 	} else {
+		// 		klog.Infof("No matched pods found for tokens: '%v', matchedTokens: '%v', model: %s", token_in_string, matched_tokens_in_string, model)
+		// 		klog.Infof("Go to cost model based routing!")
+		// 	}
+		// }
 	}
 
 	if targetPod == nil {

@@ -17,11 +17,12 @@ limitations under the License.
 package prefixcacheindexer
 
 import (
-	"sort"
+	// "sort"
 	"sync"
 	"time"
 
-	"github.com/vllm-project/aibrix/pkg/utils"
+	// "github.com/vllm-project/aibrix/pkg/utils"
+	// "github.com/aibrix/aibrix/pkg/utils"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -259,11 +260,11 @@ func (c *LPRadixCache) NewTreeNode(numPods int, parent *TreeNode, key []int, val
 	return node
 }
 
-func (c *LPRadixCache) PrettyPrint() {
-	// c.mu.RLock()
-	// defer c.mu.RUnlock()
-	c.prettyPrintHelper(c.rootNode, "", true)
-}
+// func (c *LPRadixCache) PrettyPrint() {
+// 	// c.mu.RLock()
+// 	// defer c.mu.RUnlock()
+// 	c.prettyPrintHelper(c.rootNode, "", true)
+// }
 
 func (c *LPRadixCache) GetAllNodes() map[int]*TreeNode {
 	c.mu.RLock()
@@ -283,47 +284,36 @@ func (c *LPRadixCache) GetAllPodsInNode(node *TreeNode) []string {
 	return all_pods_in_node
 }
 
-func (c *LPRadixCache) prettyPrintHelper(node *TreeNode, prefix string, isLast bool) {
-	if node == nil {
-		return
-	}
-	marker := "└── "
-	if !isLast {
-		marker = "├── "
-	}
-	childPrefix := prefix + "    "
-	if !isLast {
-		childPrefix = prefix + "│   "
-	}
-	// klog.Infof("%s%s[Key: %v, Value: %v, Load: %d, Depth: %d]", prefix, marker, node.key, node.value, node.load, node.depth)
-	tokens_in_string, err := utils.DetokenizeText(node.key)
-	if err != nil {
-		klog.Errorf("Failed to detokenize key for node %d: %v", node.id, err)
-		tokens_in_string = "ERROR"
-	}
-	all_pods_in_node := c.GetAllPodsInNode(node)
-	klog.Infof("%s%s[Node: %d, Tokens: '%s', Load: %d, Pods: %v, Depth: %d]", prefix, marker, node.id, tokens_in_string, node.load, all_pods_in_node, node.depth)
-	// if len(node.ModelToPods) > 0 {
-	// 	klog.Infof("%s    Models:", prefix)
-	// 	for model, pods := range node.ModelToPods {
-	// 		podNames := make([]string, 0, len(pods))
-	// 		for podName := range pods {
-	// 			podNames = append(podNames, podName)
-	// 		}
-	// 		klog.Infof("%s    └── %s: %v", prefix, model, podNames)
-	// 	}
-	// }
-	childKeys := make([]int, 0, len(node.children))
-	for k := range node.children {
-		childKeys = append(childKeys, k)
-	}
-	sort.Ints(childKeys)
+// func (c *LPRadixCache) prettyPrintHelper(node *TreeNode, prefix string, isLast bool) {
+// 	if node == nil {
+// 		return
+// 	}
+// 	marker := "└── "
+// 	if !isLast {
+// 		marker = "├── "
+// 	}
+// 	childPrefix := prefix + "    "
+// 	if !isLast {
+// 		childPrefix = prefix + "│   "
+// 	}
+// 	tokens_in_string, err := utils.DetokenizeText(node.key)
+// 	if err != nil {
+// 		klog.Errorf("Failed to detokenize key for node %d: %v", node.id, err)
+// 		tokens_in_string = "ERROR"
+// 	}
+// 	all_pods_in_node := c.GetAllPodsInNode(node)
+// 	klog.Infof("%s%s[Node: %d, Tokens: '%s', Load: %d, Pods: %v, Depth: %d]", prefix, marker, node.id, tokens_in_string, node.load, all_pods_in_node, node.depth)
+// 	childKeys := make([]int, 0, len(node.children))
+// 	for k := range node.children {
+// 		childKeys = append(childKeys, k)
+// 	}
+// 	sort.Ints(childKeys)
 
-	for i, key := range childKeys {
-		isLastChild := i == len(childKeys)-1
-		c.prettyPrintHelper(node.children[key], childPrefix, isLastChild)
-	}
-}
+// 	for i, key := range childKeys {
+// 		isLastChild := i == len(childKeys)-1
+// 		c.prettyPrintHelper(node.children[key], childPrefix, isLastChild)
+// 	}
+// }
 
 type LPRadixCache struct {
 	mu       sync.RWMutex
@@ -551,7 +541,7 @@ func (c *LPRadixCache) Evict(now time.Time) []*TreeNode {
 	}
 	if len(nodesToEvict) > 0 {
 		klog.Infof("Evicted %d nodes", len(nodesToEvict))
-		c.PrettyPrint()
+		// c.PrettyPrint()
 	}
 	return nodesToEvict
 }
