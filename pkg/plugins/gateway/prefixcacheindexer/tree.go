@@ -608,7 +608,7 @@ func (c *LPRadixCache) evictNode(node *TreeNode) {
 }
 
 func (c *LPRadixCache) splitNode(key []int, child *TreeNode, splitLen int) *TreeNode {
-	klog.Infof("Splitting node(%d): %v, into %v and %v", child.id, child.key, child.key[:splitLen], child.key[splitLen:])
+	// klog.Infof("Splitting node(%d): %v, into %v and %v", child.id, child.key, child.key[:splitLen], child.key[splitLen:])
 
 	// Create new node with split portions
 	newNode := c.NewTreeNode(c.numPods, child.parent, child.key[:splitLen], child.value[:splitLen])
@@ -654,10 +654,10 @@ func (c *LPRadixCache) splitNode(key []int, child *TreeNode, splitLen int) *Tree
 		}
 	}
 
-	klog.Infof("Split complete - New node(%d) key: %v, modelToPods: %v",
-		newNode.id, newNode.key, newNode.modelToPods)
-	klog.Infof("Split complete - Child node(%d) key: %v, modelToPods: %v",
-		child.id, child.key, child.modelToPods)
+	// klog.Infof("Split complete - New node(%d) key: %v, modelToPods: %v",
+	// 	newNode.id, newNode.key, newNode.modelToPods)
+	// klog.Infof("Split complete - Child node(%d) key: %v, modelToPods: %v",
+	// 	child.id, child.key, child.modelToPods)
 
 	c.allNodes[newNode.id] = newNode
 	return newNode
